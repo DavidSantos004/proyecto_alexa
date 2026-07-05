@@ -91,8 +91,8 @@ Decisiones de diseño ya validadas:
 - **Sprint 2** (completado): Memory Service — modelo de datos sobre Postgres
   (SQL relacional, key-value para hechos + tabla de conversaciones), Repository
   Pattern, adapter SQLAlchemy, migración Alembic.
-- **Sprint 3**: LLM Service con Ollama — el LLM propone acciones estructuradas
-  (JSON), nunca texto libre ejecutable.
+- **Sprint 3** (completado): LLM Service con Ollama — el LLM propone acciones
+  estructuradas (JSON), nunca texto libre ejecutable.
 - **Sprint 4** (completado): Device Service + Home Assistant — wrapper que traduce
   acciones aprobadas a llamadas de Home Assistant; Bluetooth crudo vía
   `bluetoothctl` (pendiente de implementar).
@@ -140,11 +140,22 @@ real, solo debe cambiar el cuerpo de `decide()` — el resto del sistema
 # instalar (desde .venv o docker)
 pip install -e ".[dev]"
 
-# correr servidor de desarrollo
-uvicorn app.main:app --reload
+# correr servidor de desarrollo (modo fakes — default)
+JARVIS_USE_FAKES=true uvicorn app.main:app --reload
+
+# correr servidor con servicios reales (Postgres + Ollama)
+docker compose up -d db ollama
+alembic upgrade head
+JARVIS_USE_FAKES=false OLLAMA_BASE_URL=http://localhost:11434 \
+  DATABASE_URL=postgresql://jarvis:jarvis@localhost:5432/jarvis_os \
+  uvicorn app.main:app --reload
 
 # tests (paquete específico)
 python -m pytest tests/test_orchestrator/ -v
+
+# tests con DB real
+DATABASE_URL=postgresql://jarvis:jarvis@localhost:5432/jarvis_os \
+  python -m pytest tests/test_memory/ -v
 
 # lint
 ruff check .
@@ -153,13 +164,18 @@ ruff check .
 docker compose up --build
 ```
 
-## Estado actual (Sprint 4)
+## Estado actual (Sprint 4 — completado)
 
 - `orchestrator/` completo: modelos, service con decide(), endpoint `POST /orchestrator/propose`.
 - `memory/` completo: modelos Fact/ConversationEntry, SQLAlchemy repository, MemoryService, migración Alembic.
 - `llm_service/` completo: modelos LLMContext/LLMResponse, puerto LLMPort, OllamaClient, LLMService con prompt estructurado y parseo JSON.
 - `devices/` completo: modelos DeviceCommand/DeviceResult, puerto DevicePort, HomeAssistantClient, DeviceService.
+- `api/` completo: ChatService (orquestación LLM→Orchestrator→Memory→Devices), POST /api/chat, dependencias con fakes por default.
 - `infrastructure/database.py`: engine + session factory.
 - Sin auth, sin decisiones reales de riesgo — todo auto-aprobado temporalmente.
 - Postgres y Ollama disponibles en docker-compose.
+- Pipeline real verificado: LLM Service con Ollama `qwen2.5:3b` + Memory Service con Postgres 16 + Orchestrator auto-aprueba + Device Service (HA_TOKEN pendiente).
+- 29 tests pasando, lint limpio (`ruff check .`).
+- 6 commits en main (Sprint 0+1, Sprint 2, Sprint 3, Sprint 4, Pipeline e2e, Pipeline real).
+- Postman collection: `jarvis-os.postman_collection.json`.
 - Repo: `git@github.com:DavidSantos004/proyecto_alexa.git`

@@ -50,7 +50,7 @@ class ChatService:
         self._memory.log_conversation(
             user_input=message,
             system_response=f"Acción: {action.description} — {decision.verdict}",
-            action_summary=action.model_dump(),
+            action_summary=action.model_dump(mode="json"),
             decision_verdict=decision.verdict.value,
             decision_reason=decision.reason,
         )

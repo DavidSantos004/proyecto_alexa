@@ -1,0 +1,65 @@
+{
+  "info": {
+    "name": "JARVIS OS API",
+    "description": "Collection for JARVIS Operating System API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8000/health",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Propose Action",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"source\": \"llm\",\n  \"action_type\": \"device_control\",\n  \"description\": \"Turn on living room light\",\n  \"parameters\": {\n    \"device_id\": \"light.living_room\",\n    \"state\": \"on\"\n  }\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/orchestrator/propose",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["orchestrator", "propose"]
+        }
+      }
+    },
+    {
+      "name": "Chat (end-to-end)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"enciende la luz del living\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8000/api/chat",
+          "host": ["localhost"],
+          "port": "8000",
+          "path": ["api", "chat"]
+        }
+      }
+    }
+  ]
+}
