@@ -93,8 +93,9 @@ Decisiones de diseño ya validadas:
   Pattern, adapter SQLAlchemy, migración Alembic.
 - **Sprint 3**: LLM Service con Ollama — el LLM propone acciones estructuradas
   (JSON), nunca texto libre ejecutable.
-- **Sprint 4**: Device Service + Home Assistant — wrapper que traduce acciones
-  aprobadas a llamadas de Home Assistant; Bluetooth crudo vía `bluetoothctl`.
+- **Sprint 4** (completado): Device Service + Home Assistant — wrapper que traduce
+  acciones aprobadas a llamadas de Home Assistant; Bluetooth crudo vía
+  `bluetoothctl` (pendiente de implementar).
 - **Sprint 5**: Voice Interface (Alexa Skill) — solo después de que Orchestrator
   + LLM + Memory + Devices funcionen de extremo a extremo por texto/API.
 - **Sprint 6**: Automation Service — reglas y triggers proactivos.
@@ -152,11 +153,12 @@ ruff check .
 docker compose up --build
 ```
 
-## Estado actual (Sprint 3)
+## Estado actual (Sprint 4)
 
 - `orchestrator/` completo: modelos, service con decide(), endpoint `POST /orchestrator/propose`.
 - `memory/` completo: modelos Fact/ConversationEntry, SQLAlchemy repository, MemoryService, migración Alembic.
 - `llm_service/` completo: modelos LLMContext/LLMResponse, puerto LLMPort, OllamaClient, LLMService con prompt estructurado y parseo JSON.
+- `devices/` completo: modelos DeviceCommand/DeviceResult, puerto DevicePort, HomeAssistantClient, DeviceService.
 - `infrastructure/database.py`: engine + session factory.
 - Sin auth, sin decisiones reales de riesgo — todo auto-aprobado temporalmente.
 - Postgres y Ollama disponibles en docker-compose.
