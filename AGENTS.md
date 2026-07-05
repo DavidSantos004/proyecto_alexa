@@ -1,47 +1,159 @@
-    # JARVIS OS — Personal Intelligence Operating System
+# JARVIS OS — Personal Intelligence Operating System
 
-    ## Core Philosophy
-    LLMs **never** execute actions directly — they only **propose**. The `OrchestratorService` is the sole component that decides whether an approved action runs.
+## Qué es esto y qué NO es
 
-    ## Architecture
-    - **Modular Monolith**: single FastAPI service, 8 internal modules under `app/`.
-    - Each module: `domain/` (Pydantic models), `ports/` (Protocol interfaces only — no implementations yet), `service.py` (business logic).
-    - Modules are decoupled via interfaces; no direct imports between modules.
+Este proyecto NO es un chatbot. Es un Sistema Operativo de Inteligencia Personal:
+un ecosistema de IA, automatización, domótica, memoria persistente y agentes
+inteligentes, diseñado con potencial de convertirse en producto comercial.
 
-    ## Stack
-    Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, PostgreSQL 16, Docker Compose.
+El desarrollador (David) es estudiante de Tecnología en Desarrollo de Sistemas
+Informáticos. El objetivo del proyecto es doble: (1) construir un asistente
+personal real, y (2) que David se forme como arquitecto de software en el
+proceso — arquitectura, backend, IA, Docker, DevOps, Linux, redes, diseño de
+APIs, domótica, LLMs, orquestación de agentes. No se trata solo de terminar el
+proyecto, sino de aprender ingeniería de software mientras se construye.
 
-    ## Commands
-    ```bash
-    # install (from .venv or docker)
-    pip install -e ".[dev]"
+## Filosofía central (no negociable)
 
-    # run dev server
-    uvicorn app.main:app --reload
+Los LLMs **nunca ejecutan acciones directamente** — únicamente las **proponen**.
+El `OrchestratorService` es el único componente que decide si una acción
+propuesta se ejecuta. Ningún módulo debe saltarse esta regla, sin importar cuán
+simple parezca la acción.
 
-    # test (single package)
-    python -m pytest tests/test_orchestrator/ -v
+## Arquitectura
 
-    # lint
-    ruff check .
+**Modular Monolith** — un solo servicio FastAPI, NO microservicios. Esta fue
+una decisión deliberada tras evaluar microservicios desde el día 1: con un solo
+desarrollador y sin necesidad de escalar por separado, microservicios habrían
+agregado complejidad de infraestructura (múltiples contenedores, debugging
+distribuido, contratos entre servicios) sin ningún beneficio real en esta
+etapa. La regla "monolith first" (Fowler) aplica aquí.
 
-    # docker
-    docker compose up --build
-    ```
+Cada módulo interno bajo `app/` sigue Clean Architecture en miniatura:
+- `domain/` — modelos Pydantic puros, sin dependencias de infraestructura
+- `ports/` — interfaces (Protocol) que el módulo espera de sus dependencias.
+  HOY solo contienen interfaces, sin implementación real — eso llega en un
+  sprint posterior cuando se conecte Postgres/Home Assistant de verdad.
+- `service.py` — lógica de negocio, usa los ports, nunca importa directamente
+  la implementación concreta de otro módulo.
 
-    ## Testing
-    - `pytest` with class-based tests using `setup_method` (not fixtures yet).
-    - Test paths mirror `app/` structure: `tests/test_orchestrator/`, etc.
+Módulos: `orchestrator/`, `llm_service/`, `memory/`, `devices/`, `automation/`,
+`auth/`, `notifications/`, `voice_interface/`.
 
-    ## Conventions
-    - StrEnum for all enum types (`ActionSource`, `DecisionVerdict`, etc.).
-    - `action_id` generated via `uuid4().hex` on `ProposedAction` creation.
-    - `ports/__init__.py` carries an explicit docstring: interfaces only; implementations deferred.
-    - `decide()` currently auto-approves all actions (Sprint 1 temporary behavior, documented in code).
-    - Ruff: line-length 88, rules `E,F,I,N,W`.
+Extracción a microservicios reales solo se evaluará más adelante, y solo si
+un módulo específico tiene una razón concreta para separarse (ej. `llm_service`
+necesitando GPU dedicada en otra máquina).
 
-    ## Current State (Sprint 1)
-    - Only `orchestrator/` has code: `ProposedAction`, `OrchestratorDecision` models + `OrchestratorService.decide()`.
-    - No DB, no adapters, no auth, no real decisions.
-    - `.gitignore` missing.
-    - Repo has 0 commits; `origin` points to `git@github.com:DavidSantos004/proyecto_alexa.git`.
+## Hardware objetivo
+
+Todo el desarrollo debe pensarse para correr eventualmente en una **Raspberry
+Pi 5 (8GB)**. Esto implica cuidado con el consumo de memoria: Postgres + Redis
+(cuando se agregue) + Ollama + modelos LLM cuantizados todos compitiendo por
+8GB. Preferir modelos pequeños (3B-7B cuantizados) y no asumir recursos
+ilimitados al diseñar.
+
+## Stack
+
+Python 3.12+, FastAPI, Pydantic v2, SQLAlchemy 2.0, Alembic, PostgreSQL 16,
+Docker, Docker Compose. IA vía Ollama (Qwen, Gemma, Llama, Mistral como
+opciones locales). Frontend futuro: React + Vite + TailwindCSS + TanStack
+Query + Zustand (no se toca hasta que el backend tenga contratos de API
+estables).
+
+## Restricciones conocidas del Voice Interface (Alexa) — decisiones ya tomadas
+
+Alexa es un **periférico de entrada/salida**, nunca el cerebro del sistema.
+Decisiones de diseño ya validadas:
+
+- No hay wake word personalizada — el usuario dice "Alexa, dile a Jarvis que…".
+  "Alexa" activa el dispositivo, "Jarvis" es el nombre de invocación de la skill.
+- No existe acceso a audio crudo del micrófono ni control genérico de
+  Bluetooth vía Alexa Skills Kit — son limitaciones de plataforma, no del
+  diseño del proyecto.
+- El intent debe usar `AMAZON.SearchQuery` para capturar frase libre en vez de
+  patrones rígidos.
+- Respuestas deben generarse vía TTS propio (ej. Piper) y devolverse a Alexa
+  como audio mediante la interfaz AudioPlayer — no se usa la voz nativa de
+  Alexa.
+- El backend tiene ~8 segundos para responder en el flujo estándar de skills;
+  esto debe considerarse al diseñar la latencia del LLM.
+- El endpoint puede ser HTTPS custom (vía Nginx) en vez de Lambda, para evitar
+  dependencia de AWS.
+
+## Roadmap de Sprints
+
+- **Sprint 0** (completado): entorno de desarrollo — Linux nativo (dual boot,
+  luego migrado a Linux como único SO), Docker, Git, VS Code, Python, OpenCode.
+- **Sprint 1** (en curso): esqueleto del monolito modular + modelos Pydantic
+  del Orchestrator (`ProposedAction`, `OrchestratorDecision`) + función
+  `decide()` con auto-aprobación temporal documentada como tal.
+- **Sprint 2**: Memory Service — modelo de datos sobre Postgres (empezar con
+  SQL relacional simple; no agregar memoria vectorial hasta que un caso de uso
+  concreto lo requiera).
+- **Sprint 3**: LLM Service con Ollama — el LLM propone acciones estructuradas
+  (JSON), nunca texto libre ejecutable.
+- **Sprint 4**: Device Service + Home Assistant — wrapper que traduce acciones
+  aprobadas a llamadas de Home Assistant; Bluetooth crudo vía `bluetoothctl`.
+- **Sprint 5**: Voice Interface (Alexa Skill) — solo después de que Orchestrator
+  + LLM + Memory + Devices funcionen de extremo a extremo por texto/API.
+- **Sprint 6**: Automation Service — reglas y triggers proactivos.
+- **Sprint 7+**: Auth, Notifications, hardening. Evaluación de si algún módulo
+  amerita separarse a microservicio real.
+
+## Modelo de riesgo del Orchestrator (decisión pendiente, documentada)
+
+El campo `risk_level` existe en `ProposedAction` desde Sprint 1, pero
+**no se usa aún para tomar decisiones** — todo se auto-aprueba temporalmente
+por decisión explícita de David. El campo se diseñó completo desde ahora para
+evitar una migración de datos futura. Cuando se defina el sistema de riesgo
+real, solo debe cambiar el cuerpo de `decide()` — el resto del sistema
+(modelos, endpoints, servicios) no debería tocarse.
+
+## Forma de trabajar (no negociable)
+
+- Explica la decisión técnica y el "por qué" ANTES de escribir código, siempre.
+- No generes más de un módulo de código sin pausar para confirmación.
+- Si un enfoque solicitado no es buena arquitectura, dilo explícitamente y
+  propone una alternativa — no simplemente cumplas la instrucción.
+- El usuario quiere entender cada línea, no copiar y pegar sin comprender.
+  Prioriza claridad sobre ingenio.
+- Nunca clases gigantes, nunca funciones enormes. Repository Pattern, Service
+  Layer, Dependency Injection, SOLID en todo momento.
+- Trabajo por Sprints: cada uno con objetivos, diseño, implementación,
+  pruebas, refactorización — no se empieza a programar sin diseñar primero.
+
+## Convenciones de código
+
+- `StrEnum` para todos los tipos enumerados (`ActionSource`, `DecisionVerdict`, etc.)
+- `action_id` generado vía `uuid4().hex` al crear `ProposedAction`
+- `ports/__init__.py` lleva docstring explícito: solo interfaces, implementación diferida
+- Ruff: line-length 88, reglas `E,F,I,N,W`
+- Tests con pytest, basados en clases con `setup_method` (sin fixtures aún)
+- Rutas de test reflejan la estructura de `app/`: `tests/test_orchestrator/`, etc.
+
+## Comandos
+
+```bash
+# instalar (desde .venv o docker)
+pip install -e ".[dev]"
+
+# correr servidor de desarrollo
+uvicorn app.main:app --reload
+
+# tests (paquete específico)
+python -m pytest tests/test_orchestrator/ -v
+
+# lint
+ruff check .
+
+# docker
+docker compose up --build
+```
+
+## Estado actual (Sprint 1)
+
+- Solo `orchestrator/` tiene código: modelos `ProposedAction`,
+  `OrchestratorDecision` + `OrchestratorService.decide()`.
+- Sin DB conectada, sin adapters reales, sin auth, sin decisiones reales de
+  riesgo — todo auto-aprobado temporalmente.
+- Repo: `git@github.com:DavidSantos004/proyecto_alexa.git`
