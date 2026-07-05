@@ -84,12 +84,13 @@ Decisiones de diseño ya validadas:
 
 - **Sprint 0** (completado): entorno de desarrollo — Linux nativo (dual boot,
   luego migrado a Linux como único SO), Docker, Git, VS Code, Python, OpenCode.
-- **Sprint 1** (en curso): esqueleto del monolito modular + modelos Pydantic
+- **Sprint 1** (completado): esqueleto del monolito modular + modelos Pydantic
   del Orchestrator (`ProposedAction`, `OrchestratorDecision`) + función
-  `decide()` con auto-aprobación temporal documentada como tal.
-- **Sprint 2**: Memory Service — modelo de datos sobre Postgres (empezar con
-  SQL relacional simple; no agregar memoria vectorial hasta que un caso de uso
-  concreto lo requiera).
+  `decide()` con auto-aprobación temporal documentada como tal + endpoint
+  `POST /orchestrator/propose`.
+- **Sprint 2** (completado): Memory Service — modelo de datos sobre Postgres
+  (SQL relacional, key-value para hechos + tabla de conversaciones), Repository
+  Pattern, adapter SQLAlchemy, migración Alembic.
 - **Sprint 3**: LLM Service con Ollama — el LLM propone acciones estructuradas
   (JSON), nunca texto libre ejecutable.
 - **Sprint 4**: Device Service + Home Assistant — wrapper que traduce acciones
@@ -130,6 +131,7 @@ real, solo debe cambiar el cuerpo de `decide()` — el resto del sistema
 - Ruff: line-length 88, reglas `E,F,I,N,W`
 - Tests con pytest, basados en clases con `setup_method` (sin fixtures aún)
 - Rutas de test reflejan la estructura de `app/`: `tests/test_orchestrator/`, etc.
+- Cada test file debe tener un nombre ÚNICO (ej. `test_orchestrator_service.py`, no `test_service.py`) para evitar colisiones de módulo entre paquetes.
 
 ## Comandos
 
@@ -150,10 +152,12 @@ ruff check .
 docker compose up --build
 ```
 
-## Estado actual (Sprint 1)
+## Estado actual (Sprint 3)
 
-- Solo `orchestrator/` tiene código: modelos `ProposedAction`,
-  `OrchestratorDecision` + `OrchestratorService.decide()`.
-- Sin DB conectada, sin adapters reales, sin auth, sin decisiones reales de
-  riesgo — todo auto-aprobado temporalmente.
+- `orchestrator/` completo: modelos, service con decide(), endpoint `POST /orchestrator/propose`.
+- `memory/` completo: modelos Fact/ConversationEntry, SQLAlchemy repository, MemoryService, migración Alembic.
+- `llm_service/` completo: modelos LLMContext/LLMResponse, puerto LLMPort, OllamaClient, LLMService con prompt estructurado y parseo JSON.
+- `infrastructure/database.py`: engine + session factory.
+- Sin auth, sin decisiones reales de riesgo — todo auto-aprobado temporalmente.
+- Postgres y Ollama disponibles en docker-compose.
 - Repo: `git@github.com:DavidSantos004/proyecto_alexa.git`
