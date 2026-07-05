@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api.router import router as api_router
 from app.orchestrator.router import router as orchestrator_router
 
 app = FastAPI(
@@ -9,6 +10,7 @@ app = FastAPI(
 )
 
 app.include_router(orchestrator_router)
+app.include_router(api_router)
 
 
 @app.get("/health")
